@@ -29,7 +29,7 @@ async def start_cmd(message: Message):
 async def currency_keyboard(message: Message):
     keyboard = ReplyKeyboardMarkup(
         keyboard = [
-            [KeyboardButton(text = "💲 Отримати курс валют")],
+            [KeyboardButton(text = "💲 Отримати курс валюти")],
             [KeyboardButton(text = "⬅ Назад")]
         ],
         resize_keyboard= True
