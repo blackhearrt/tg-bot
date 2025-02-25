@@ -22,7 +22,7 @@ async def start_cmd(message: Message):
             [KeyboardButton(text = "✅ TODO-ліст")],
             [KeyboardButton(text = "Головне меню")]
         ],
-        resize_keyboard= True
+        resize_keyboard = True
     )
     await message.answer("Виберіть функцію:", reply_markup = keyboard)
 
@@ -33,7 +33,7 @@ async def currency_keyboard(message: Message):
             [KeyboardButton(text = "💲 Отримати курс валюти")],
             [KeyboardButton(text = "⬅ Назад")]
         ],
-        resize_keyboard= True
+        resize_keyboard = True
     )
     await message.answer("Виберіть функцію:", reply_markup = keyboard)
 
@@ -64,7 +64,7 @@ async def todo_keyboard(message: types.Message):
             [KeyboardButton(text = "Список справ")],
             [KeyboardButton(text = "⬅ Назад")]
         ],
-        resize_keyboard= True
+        resize_keyboard = True
     )
     await message.answer("Виберіть функцію:", reply_markup = keyboard)
 
@@ -76,7 +76,7 @@ async def back(message: types.Message):
             [KeyboardButton(text = "✅ TODO-ліст")],
             [KeyboardButton(text = "Головне меню")]
         ],
-        resize_keyboard= True
+        resize_keyboard = True
     )
     await message.answer("Виберіть функцію:", reply_markup = keyboard)
 
