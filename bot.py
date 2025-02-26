@@ -1,18 +1,25 @@
-from aiogram import Bot, Dispatcher, types, Router, F
-from aiogram.filters import Command
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, Message
 import asyncio
 import os
 import requests
 from dotenv import load_dotenv
+from datetime import datetime
+from aiogram import Bot, Dispatcher, types, Router, F, html
+from aiogram.filters import Command
+from aiogram.client.default import DefaultBotProperties
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, Message
+from aiogram.enums import ParseMode
+
+
 
 load_dotenv() 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 TOKEN = BOT_TOKEN
 
-bot = Bot(token=TOKEN)
+bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 router = Router()
+
+now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 @dp.message(Command('start'))
 async def start_cmd(message: Message):
@@ -39,20 +46,28 @@ async def currency_keyboard(message: Message):
 
 @dp.message(F.text == "💲 Отримати курс валюти")
 async def get_currency(message: types.Message):
-    url = "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json"
+    url = "https://api.monobank.ua/bank/currency"
     response = requests.get(url)
 
     if response.status_code != 200:
         await message.answer("❌ Не вдалося отримати курс валют. Спробуйте пізніше.")
         return
+    
     data = response.json()
 
-    currency_codes = ["USD", "EUR", "GBP", "PLN"]
-    currency_data = [currency for currency in data if currency["cc"] in currency_codes]
+    currency_map = {
+        840: "USD",  # Долар США
+        978: "EUR",  # Євро
+        985: "PLN",  # Польський злотий
+    }
 
-    message_text = "💱 *Курс валют НБУ:*\n\n"
-    for currency in currency_data:
-         message_text += f"<b>{currency['txt']} ({currency['cc']}):</b> {currency['rate']} грн\n"
+    message_text = f"💱 <b>Курс валют станом на {now}</b>\n\n"
+    for item in data:
+        if item["currencyCodeA"] in currency_map and item["currencyCodeB"] == 980:  # UAH
+            currency_name = currency_map[item["currencyCodeA"]]
+            rate_buy = item.get("rateBuy", "❌ Немає даних")
+            rate_sell = item.get("rateSell", "❌ Немає даних")
+            message_text += f"<b>{currency_name}:</b> Купівля: {rate_buy} | Продаж: {rate_sell}\n"
 
     await message.answer(message_text, parse_mode="HTML")
 
@@ -61,7 +76,7 @@ async def get_currency(message: types.Message):
 async def todo_keyboard(message: types.Message):
     keyboard = ReplyKeyboardMarkup(
         keyboard = [
-            [KeyboardButton(text = "Список справ")],
+            [KeyboardButton(text = "✍📋Список справ")],
             [KeyboardButton(text = "⬅ Назад")]
         ],
         resize_keyboard= True
@@ -74,11 +89,24 @@ async def back(message: types.Message):
         keyboard = [
             [KeyboardButton(text = "📊 Курс валют")],
             [KeyboardButton(text = "✅ TODO-ліст")],
-            [KeyboardButton(text = "Головне меню")]
+            [KeyboardButton(text = "🏠 Головне меню")]
         ],
         resize_keyboard= True
     )
     await message.answer("Виберіть функцію:", reply_markup = keyboard)
+
+@dp.message(F.text == "🏠 Головне меню")
+async def main_menu(message: types.Message):
+    username = message.from_user.full_name or "шановний"
+    keyboard = ReplyKeyboardMarkup(
+        keyboard = [
+            [KeyboardButton(text = "📊 Курс валют")],
+            [KeyboardButton(text = "✅ TODO-ліст")],
+            [KeyboardButton(text = "🏠 Головне меню")]
+        ],
+        resize_keyboard= True
+    )
+    await message.answer(f"Доброго дня, {html.bold(username)}! Які плани на сьогодні?", reply_markup = keyboard)
 
 async def main():
     await dp.start_polling(bot)
