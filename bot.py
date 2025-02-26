@@ -33,6 +33,19 @@ def get_time_info():
 
     return f"{day_name}, {formatted_time} | {formatted_day}"
 
+def get_greeting():
+   
+    now = datetime.now().time()  
+    
+    if now >= datetime.strptime("05:01", "%H:%M").time() and now <= datetime.strptime("11:30", "%H:%M").time():
+        return "Доброго ранку"
+    elif now >= datetime.strptime("11:31", "%H:%M").time() and now <= datetime.strptime("16:30", "%H:%M").time():
+        return "Доброго дня"
+    elif now >= datetime.strptime("16:31", "%H:%M").time() and now <= datetime.strptime("23:00", "%H:%M").time():
+        return "Доброго вечора"
+    else:
+        return "Доброї ночі"
+
 def currency_keyboard():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard = [
@@ -44,16 +57,38 @@ def currency_keyboard():
     return keyboard
 
 @dp.message(Command("start"))
+async def update_time_auto(message: Message):
+    while True:
+        time_info = get_time_info()  # Отримуємо оновлений час
+        try:
+            await message.edit_text(
+                f"📅 {time_info}\n\n"
+                "Оберіть дію:",
+                reply_markup=message.reply_markup  # Зберігаємо кнопки
+            )
+        except Exception:
+            break  # Якщо повідомлення видалено або бот перезапущено, зупиняємо оновлення
+        await asyncio.sleep(60)  # Чекаємо 60 секунд перед наступним оновленням
+
 async def start_cmd(message: Message):
+    greeting = get_greeting()
+    time_info = get_time_info()
+    username = message.from_user.full_name or "шановний"
     keyboard = ReplyKeyboardMarkup(
         keyboard = [
             [KeyboardButton(text = "📊 Курс валют")],
             [KeyboardButton(text = "✅ TODO-ліст")],
-            [KeyboardButton(text = "Головне меню")]
+            [KeyboardButton(text = "🏠 Головне меню")]
         ],
-        resize_keyboard = True
+        resize_keyboard= True
     )
-    await message.answer("Виберіть функцію:", reply_markup = keyboard)
+    sent_message = await message.answer(
+        f"📅 {time_info}\n\n"
+        f"👋 {greeting}, {html.bold(username)}!  Які плани на сьогодні?\n\n", 
+        reply_markup = keyboard
+    )
+    asyncio.create_task(update_time_auto(sent_message))
+
 
 @dp.message(F.text =="📊 Курс валют")
 async def currency(message: Message):
@@ -131,6 +166,7 @@ async def back(message: types.Message):
 
 @dp.message(F.text == "🏠 Головне меню")
 async def main_menu(message: types.Message):
+    greeting = get_greeting()
     time_info = get_time_info()
     username = message.from_user.full_name or "шановний"
     keyboard = ReplyKeyboardMarkup(
@@ -141,11 +177,24 @@ async def main_menu(message: types.Message):
         ],
         resize_keyboard= True
     )
-    await message.answer(
+    sent_message = await message.answer(
         f"📅 {time_info}\n\n"
-        f"👋 Доброго дня, {html.bold(username)}!  Які плани на сьогодні?\n\n", 
+        f"👋 {greeting}, {html.bold(username)}!  Які плани на сьогодні?\n\n", 
         reply_markup = keyboard
     )
+    asyncio.create_task(update_time_auto(sent_message))
+
+
+@dp.message(F.text =="📊 Курс валют")
+async def currency(message: Message):
+    keyboard = ReplyKeyboardMarkup(
+        keyboard = [
+            [KeyboardButton(text = "💲 Отримати курс валюти")],
+            [KeyboardButton(text = "⬅ Назад")]
+        ],
+        resize_keyboard = True
+    )
+    await message.answer("Виберіть функцію:", reply_markup = keyboard)
 
 async def main():
     await dp.start_polling(bot)
