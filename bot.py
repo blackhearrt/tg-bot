@@ -20,6 +20,19 @@ dp = Dispatcher()
 router = Router()
 
 now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def get_time_info():
+    now = datetime.now()
+    days_of_week = {
+        0: "Понеділок", 1: "Вівторок", 2: "Середа", 3: "Четвер",
+        4: "П'ятниця", 5: "Субота", 6: "Неділя"
+    }
+    day_name = days_of_week[now.weekday()]
+    formatted_time = now.strftime("%H:%M")
+    formatted_day = now.strftime("%d.%m.%Y")
+
+    return f"{day_name}, {formatted_time} | {formatted_day}"
+
 def currency_keyboard():
     keyboard = InlineKeyboardMarkup(
         inline_keyboard = [
@@ -118,6 +131,7 @@ async def back(message: types.Message):
 
 @dp.message(F.text == "🏠 Головне меню")
 async def main_menu(message: types.Message):
+    time_info = get_time_info()
     username = message.from_user.full_name or "шановний"
     keyboard = ReplyKeyboardMarkup(
         keyboard = [
@@ -127,7 +141,11 @@ async def main_menu(message: types.Message):
         ],
         resize_keyboard= True
     )
-    await message.answer(f"Доброго дня, {html.bold(username)}! Які плани на сьогодні?", reply_markup = keyboard)
+    await message.answer(
+        f"📅 {time_info}\n\n"
+        f"👋 Доброго дня, {html.bold(username)}!  Які плани на сьогодні?\n\n", 
+        reply_markup = keyboard
+    )
 
 async def main():
     await dp.start_polling(bot)
