@@ -1,6 +1,8 @@
 import asyncio
 import os
 import requests
+import json
+from pathlib import Path
 from dotenv import load_dotenv
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types, Router, F, html
@@ -20,6 +22,32 @@ dp = Dispatcher()
 router = Router()
 
 now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+CHAT_IDS_FILE = "chat_ids.json"
+
+def load_chat_ids():
+    """Завантажує chat_id користувачів з файлу."""
+    file_path = Path(CHAT_IDS_FILE)
+    
+    if not file_path.exists():
+        print("ℹ️ Файл chat_ids.json не знайдено. Створюємо новий.")
+        return set()  # Повертаємо порожню множину
+    
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            return set(json.load(file))
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"⚠️ Помилка зчитування chat_ids.json: {e}")
+        return set()
+
+def save_chat_ids(chat_ids):
+    """Зберігає chat_id користувачів у файл."""
+    try:
+        with open(CHAT_IDS_FILE, "w", encoding="utf-8") as file:
+            json.dump(list(chat_ids), file, ensure_ascii=False, indent=2)
+        print("✅ Chat IDs успішно збережено.")
+    except Exception as e:
+        print(f"❌ Помилка запису chat_ids.json: {e}")
 
 def get_time_info():
     now = datetime.now()
@@ -166,6 +194,14 @@ async def back(message: types.Message):
 
 @dp.message(F.text == "🏠 Головне меню")
 async def main_menu(message: types.Message):
+     # Завантажуємо ID користувачів
+    user_chat_ids = load_chat_ids()
+    
+    # Додаємо нового користувача
+    user_chat_ids.add(message.chat.id)
+    
+    # Зберігаємо зміни у файл
+    save_chat_ids(user_chat_ids)
     greeting = get_greeting()
     time_info = get_time_info()
     username = message.from_user.full_name or "шановний"
