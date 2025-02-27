@@ -23,31 +23,22 @@ router = Router()
 
 now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-CHAT_IDS_FILE = "chat_ids.json"
+USER_IDS_FILE = Path(__file__).parent / "user_ids.json"
 
 def load_chat_ids():
-    """Завантажує chat_id користувачів з файлу."""
-    file_path = Path(CHAT_IDS_FILE)
-    
-    if not file_path.exists():
-        print("ℹ️ Файл chat_ids.json не знайдено. Створюємо новий.")
-        return set()  # Повертаємо порожню множину
-    
+    """Завантажує дані користувачів з файлу user_ids.json"""
+    if not USER_IDS_FILE.exists():
+        return {}  # Якщо файлу немає, повертаємо порожній словник
     try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            return set(json.load(file))
-    except (json.JSONDecodeError, ValueError) as e:
-        print(f"⚠️ Помилка зчитування chat_ids.json: {e}")
-        return set()
+        with open(USER_IDS_FILE, "r", encoding="utf-8") as file:
+            return json.load(file)  # Завантажуємо дані
+    except json.JSONDecodeError:
+        return {}  # Якщо помилка читання JSON, повертаємо порожній словник
 
-def save_chat_ids(chat_ids):
-    """Зберігає chat_id користувачів у файл."""
-    try:
-        with open(CHAT_IDS_FILE, "w", encoding="utf-8") as file:
-            json.dump(list(chat_ids), file, ensure_ascii=False, indent=2)
-        print("✅ Chat IDs успішно збережено.")
-    except Exception as e:
-        print(f"❌ Помилка запису chat_ids.json: {e}")
+def save_chat_ids(user_data):
+    """Зберігає дані користувачів у файл user_ids.json"""
+    with open(USER_IDS_FILE, "w", encoding="utf-8") as file:
+        json.dump(user_data, file, indent=4, ensure_ascii=False)
 
 def get_time_info():
     now = datetime.now()
@@ -85,20 +76,14 @@ def currency_keyboard():
     return keyboard
 
 @dp.message(Command("start"))
-async def update_time_auto(message: Message):
-    while True:
-        time_info = get_time_info()  # Отримуємо оновлений час
-        try:
-            await message.edit_text(
-                f"📅 {time_info}\n\n"
-                "Оберіть дію:",
-                reply_markup=message.reply_markup  # Зберігаємо кнопки
-            )
-        except Exception:
-            break  # Якщо повідомлення видалено або бот перезапущено, зупиняємо оновлення
-        await asyncio.sleep(60)  # Чекаємо 60 секунд перед наступним оновленням
-
 async def start_cmd(message: Message):
+    user_chat_ids = load_chat_ids()  
+    user_id = str(message.chat.id)  
+    username = message.from_user.username or message.from_user.full_name  
+    
+    user_chat_ids[user_id] = username
+
+    save_chat_ids(user_chat_ids) 
     greeting = get_greeting()
     time_info = get_time_info()
     username = message.from_user.full_name or "шановний"
@@ -112,11 +97,9 @@ async def start_cmd(message: Message):
     )
     sent_message = await message.answer(
         f"📅 {time_info}\n\n"
-        f"👋 {greeting}, {html.bold(username)}!  Які плани на сьогодні?\n\n", 
+        f"👋 {greeting}, {html.bold(username)}! Які плани на сьогодні?\n\n", 
         reply_markup = keyboard
     )
-    asyncio.create_task(update_time_auto(sent_message))
-
 
 @dp.message(F.text =="📊 Курс валют")
 async def currency(message: Message):
@@ -194,13 +177,12 @@ async def back(message: types.Message):
 
 @dp.message(F.text == "🏠 Головне меню")
 async def main_menu(message: types.Message):
-     # Завантажуємо ID користувачів
     user_chat_ids = load_chat_ids()
-    
-    # Додаємо нового користувача
-    user_chat_ids.add(message.chat.id)
-    
-    # Зберігаємо зміни у файл
+    user_id = str(message.chat.id) 
+    username = message.from_user.username or message.from_user.full_name  
+
+    user_chat_ids[user_id] = username
+
     save_chat_ids(user_chat_ids)
     greeting = get_greeting()
     time_info = get_time_info()
@@ -215,10 +197,9 @@ async def main_menu(message: types.Message):
     )
     sent_message = await message.answer(
         f"📅 {time_info}\n\n"
-        f"👋 {greeting}, {html.bold(username)}!  Які плани на сьогодні?\n\n", 
+        f"👋 {greeting}, {html.bold(username)}! Які плани на сьогодні?\n\n", 
         reply_markup = keyboard
     )
-    asyncio.create_task(update_time_auto(sent_message))
 
 
 @dp.message(F.text =="📊 Курс валют")
