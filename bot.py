@@ -116,7 +116,6 @@ async def show_currency_menu(message: types.Message):
 
 @dp.callback_query(F.data.startswith("currency_"))    
 async def get_currency(callback: types.CallbackQuery):
-   
     currency_code = callback.data.split("_")[1].upper()
 
     currency_map = {
@@ -137,17 +136,23 @@ async def get_currency(callback: types.CallbackQuery):
         return
     
     data = response.json()
+    print(data)  # 🟢 Додали логування всіх отриманих курсів
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     for item in data:
         if item["currencyCodeA"] in currency_map and item["currencyCodeB"] == 980:  # UAH
-            rate_buy = item.get("rateBuy", "❌ Немає даних") 
-            rate_sell = item.get("rateSell", "❌ Немає даних")
+            if currency_map[item["currencyCodeA"]] == currency_code:  # Перевіряємо саме обрану валюту
+                rate_buy = item.get("rateBuy", "❌ Немає даних") 
+                rate_sell = item.get("rateSell", "❌ Немає даних")
 
-            message_text = f"💱 <b>Курс {currency_code} станом на {now}</b>\n\n"
-            message_text += f"<b>{currency_code}:</b> Купівля: {rate_buy} | Продаж: {rate_sell}"           
+                message_text = (
+                    f"💱 <b>Курс {currency_code} станом на {now}</b>\n\n"
+                    f"<b>{currency_code}:</b> Купівля: {rate_buy} | Продаж: {rate_sell}"
+                )
 
-        await callback.message.answer(message_text, parse_mode="HTML")
-        return
+                await callback.message.answer(message_text, parse_mode="HTML")
+                return  # Виходимо, щойно знайдемо потрібну валюту
+
     await callback.message.answer("❌ Курс не знайдено.")
 
 @dp.message(F.text == "✅ TODO-ліст")
