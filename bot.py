@@ -26,17 +26,15 @@ now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 USER_IDS_FILE = Path(__file__).parent / "user_ids.json"
 
 def load_chat_ids():
-    """Завантажує дані користувачів з файлу user_ids.json"""
     if not USER_IDS_FILE.exists():
-        return {}  # Якщо файлу немає, повертаємо порожній словник
+        return {}  
     try:
         with open(USER_IDS_FILE, "r", encoding="utf-8") as file:
-            return json.load(file)  # Завантажуємо дані
+            return json.load(file)  
     except json.JSONDecodeError:
-        return {}  # Якщо помилка читання JSON, повертаємо порожній словник
+        return {} 
 
 def save_chat_ids(user_data):
-    """Зберігає дані користувачів у файл user_ids.json"""
     with open(USER_IDS_FILE, "w", encoding="utf-8") as file:
         json.dump(user_data, file, indent=4, ensure_ascii=False)
 
