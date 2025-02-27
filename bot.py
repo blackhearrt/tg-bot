@@ -63,15 +63,6 @@ def get_greeting():
     else:
         return "Доброї ночі"
 
-def currency_keyboard():
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard = [
-            [InlineKeyboardButton(text="💵 USD", callback_data="currency_usd")],
-            [InlineKeyboardButton(text="💴 EUR", callback_data="currency_eur")],
-            [InlineKeyboardButton(text="🇵🇱 PLN", callback_data="currency_pln")]
-        ]
-    )
-    return keyboard
 
 @dp.message(Command("start"))
 async def start_cmd(message: Message):
@@ -114,6 +105,17 @@ async def currency(message: Message):
 async def show_currency_menu(message: types.Message):
     await message.answer("Оберіть валюту:", reply_markup=currency_keyboard())
 
+def currency_keyboard():
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard = [
+            [InlineKeyboardButton(text="💵 USD", callback_data="currency_usd")],
+            [InlineKeyboardButton(text="💴 EUR", callback_data="currency_eur")],
+            [InlineKeyboardButton(text="🇵🇱 PLN", callback_data="currency_pln")],
+            [InlineKeyboardButton(text="🇬🇧 GBP", callback_data="currency_gbp")]
+        ]
+    )
+    return keyboard
+
 @dp.callback_query(F.data.startswith("currency_"))    
 async def get_currency(callback: types.CallbackQuery):
     currency_code = callback.data.split("_")[1].upper()
@@ -122,6 +124,7 @@ async def get_currency(callback: types.CallbackQuery):
         840: "USD",  # Долар США
         978: "EUR",  # Євро
         985: "PLN",  # Польський злотий
+        826: "GBP"  # Фунт британський      
     }
 
     if currency_code not in currency_map.values():
@@ -136,22 +139,36 @@ async def get_currency(callback: types.CallbackQuery):
         return
     
     data = response.json()
-    print(data)  # 🟢 Додали логування всіх отриманих курсів
+    # print(data)  🟢 Додали логування всіх отриманих курсів
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     for item in data:
         if item["currencyCodeA"] in currency_map and item["currencyCodeB"] == 980:  # UAH
-            if currency_map[item["currencyCodeA"]] == currency_code:  # Перевіряємо саме обрану валюту
+            if currency_map[item["currencyCodeA"]] == currency_code: 
                 rate_buy = item.get("rateBuy", "❌ Немає даних") 
                 rate_sell = item.get("rateSell", "❌ Немає даних")
+                if isinstance(rate_buy, (int, float)):
+                    rate_buy = round(rate_buy, 2)
+                if isinstance(rate_sell, (int, float)):
+                    rate_sell = round(rate_sell, 2)
+
 
                 message_text = (
                     f"💱 <b>Курс {currency_code} станом на {now}</b>\n\n"
-                    f"<b>{currency_code}:</b> Купівля: {rate_buy} | Продаж: {rate_sell}"
+                    f"<b>{currency_code}:</b> Купівля: {rate_buy} грн | Продаж: {rate_sell} грн"
                 )
 
+                if rate_buy == "❌ Немає даних" or rate_sell == "❌ Немає даних":
+                    rate_cross = item.get("rateCross", "❌ Немає даних")
+                    if isinstance(rate_cross, (int, float)):
+                        rate_cross = round(rate_cross, 2)
+                    message_text = (
+                        f"💱 <b>Курс {currency_code} станом на {now}</b>\n\n"
+                        f"<b>{currency_code}:</b> {rate_cross} грн"
+                    )
+
                 await callback.message.answer(message_text, parse_mode="HTML")
-                return  # Виходимо, щойно знайдемо потрібну валюту
+                return 
 
     await callback.message.answer("❌ Курс не знайдено.")
 
