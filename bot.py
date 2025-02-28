@@ -79,7 +79,7 @@ async def start_cmd(message: Message):
     keyboard = ReplyKeyboardMarkup(
         keyboard = [
             [KeyboardButton(text = "📊 Курс валют")],
-            [KeyboardButton(text = "✅ TODO-ліст")],
+            [KeyboardButton(text = "✅ Трекер завдань")],
             [KeyboardButton(text = "🏠 Головне меню")]
         ],
         resize_keyboard= True
@@ -139,7 +139,7 @@ async def get_currency(callback: types.CallbackQuery):
         return
     
     data = response.json()
-    # print(data)  🟢 Додали логування всіх отриманих курсів
+    # print(data)  🟢 Логування всіх отриманих курсів
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     for item in data:
@@ -172,23 +172,35 @@ async def get_currency(callback: types.CallbackQuery):
 
     await callback.message.answer("❌ Курс не знайдено.")
 
-@dp.message(F.text == "✅ TODO-ліст")
+@dp.message(F.text == "✅ Трекер завдань")
 async def todo_keyboard(message: types.Message):
     keyboard = ReplyKeyboardMarkup(
-        keyboard = [
-            [KeyboardButton(text = "✍📋Список справ")],
-            [KeyboardButton(text = "⬅ Назад")]
+        keyboard=[
+            [KeyboardButton(text="📋 Переглянути списки")],
+            [KeyboardButton(text="✍ Додати нове завдання")],
+            [KeyboardButton(text="⏰ Дедлайни та нагадування")],
+            [KeyboardButton(text="⬅ Назад")]
         ],
-        resize_keyboard = True
+        resize_keyboard=True
     )
-    await message.answer("Виберіть функцію:", reply_markup = keyboard)
+
+    welcome_text = (
+        "📝 <b>Ласкаво просимо до персонального трекера!</b>\n\n"
+        "Тут Ви можете керувати своїми списками справ:\n"
+        "📋 Переглянути та редагувати списки\n"
+        "✍ Додати нове завдання\n"
+        "⏰ Встановити нагадування\n\n"
+        "Виберіть дію:"
+    )
+
+    await message.answer(welcome_text, parse_mode="HTML", reply_markup=keyboard)
 
 @dp.message(F.text == "⬅ Назад")
 async def back(message: types.Message):
     keyboard = ReplyKeyboardMarkup(
         keyboard = [
             [KeyboardButton(text = "📊 Курс валют")],
-            [KeyboardButton(text = "✅ TODO-ліст")],
+            [KeyboardButton(text = "✅ Трекер завдань")],
             [KeyboardButton(text = "🏠 Головне меню")]
         ],
         resize_keyboard = True
@@ -210,7 +222,7 @@ async def main_menu(message: types.Message):
     keyboard = ReplyKeyboardMarkup(
         keyboard = [
             [KeyboardButton(text = "📊 Курс валют")],
-            [KeyboardButton(text = "✅ TODO-ліст")],
+            [KeyboardButton(text = "✅ Трекер завдань")],
             [KeyboardButton(text = "🏠 Головне меню")]
         ],
         resize_keyboard= True
