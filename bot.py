@@ -10,6 +10,8 @@ from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.enums import ParseMode
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
 
 
 
@@ -194,6 +196,55 @@ async def todo_keyboard(message: types.Message):
     )
 
     await message.answer(welcome_text, parse_mode="HTML", reply_markup=keyboard)
+
+class TaskCreation(StatesGroup):
+    choosing_list = State()
+    entering_task = State()
+
+# 📋 Переглянути списки
+@dp.message(F.text == "📋 Переглянути списки")
+async def view_task_lists(message: types.Message):
+    # Тимчасові списки (потім буде БД)
+    task_lists = ["Робота", "Навчання", "Особисте"]
+    
+    if not task_lists:
+        await message.answer("❌ У вас поки немає списків завдань.")
+        return
+    
+    lists_text = "📂 <b>Ваші списки:</b>\n\n" + "\n".join([f"📌 {lst}" for lst in task_lists])
+    await message.answer(lists_text, parse_mode="HTML")
+
+# ✍ Додати нове завдання (початок діалогу)
+@dp.message(F.text == "✍ Додати нове завдання")
+async def add_task_start(message: types.Message, state: FSMContext):
+    await state.set_state(TaskCreation.choosing_list)
+    await message.answer("📂 Введіть назву списку, до якого додати завдання:")
+
+# Отримання назви списку
+@dp.message(TaskCreation.choosing_list)
+async def add_task_choose_list(message: types.Message, state: FSMContext):
+    await state.update_data(task_list=message.text)
+    await state.set_state(TaskCreation.entering_task)
+    await message.answer("📝 Введіть текст завдання:")
+
+# Отримання тексту завдання
+@dp.message(TaskCreation.entering_task)
+async def add_task_enter_task(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    task_list = data.get("task_list")
+    task_text = message.text
+
+    # Тут пізніше збережемо у БД
+    await message.answer(f"✅ Завдання додано до списку <b>{task_list}</b>:\n📌 {task_text}", parse_mode="HTML")
+    
+    await state.clear()
+
+# ⏰ Дедлайни та нагадування (поки що просто меню)
+@dp.message(F.text == "⏰ Дедлайни та нагадування")
+async def reminders_menu(message: types.Message):
+    await message.answer("🔔 Тут буде меню для налаштування нагадувань.")
+
+
 
 @dp.message(F.text == "⬅ Назад")
 async def back(message: types.Message):
