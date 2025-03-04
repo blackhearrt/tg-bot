@@ -40,6 +40,131 @@ def save_chat_ids(user_data):
     with open(USER_IDS_FILE, "w", encoding="utf-8") as file:
         json.dump(user_data, file, indent=4, ensure_ascii=False)
 
+ADMIN_FILE = Path(__file__).parent / "admins.json"
+
+def load_admins():
+    if not ADMIN_FILE.exists():
+        return set()
+    try:
+        with open(ADMIN_FILE, "r", encoding="utf-8") as file:
+            data = json.load(file)
+            return set(data.get("admins", []))
+    except json.JSONDecodeError:
+        return set()
+
+def save_admins(admins):
+    with open(ADMIN_FILE, "w", encoding="utf-8") as file:
+        json.dump({"admins": list(admins)}, file, indent=4, ensure_ascii=False)
+
+ADMIN_IDS = load_admins()
+
+@dp.message(Command("addadmin"))
+async def add_admin(message: types.Message):
+    global ADMIN_IDS
+    if message.from_user.id not in ADMIN_IDS:
+        await message.answer("❌ У вас немає прав для цієї команди!")
+        return
+    
+    try:
+        new_admin_id = int(message.text.split()[1])
+        if new_admin_id in ADMIN_IDS:
+            await message.answer("✅ Цей користувач вже є адміністратором.")
+            return
+
+        ADMIN_IDS.add(new_admin_id)
+        save_admins(ADMIN_IDS)
+        await message.answer(f"✅ Користувач {new_admin_id} доданий до адміністраторів.")
+    except (IndexError, ValueError):
+        await message.answer("❌ Вкажіть правильний ID користувача! Наприклад: /addadmin 123456789")
+
+@dp.message(Command("removeadmin"))
+async def remove_admin(message: types.Message):
+    global ADMIN_IDS
+    if message.from_user.id not in ADMIN_IDS:
+        await message.answer("❌ У вас немає прав для цієї команди!")
+        return
+
+    try:
+        admin_id = int(message.text.split()[1])
+        if admin_id not in ADMIN_IDS:
+            await message.answer("❌ Цей користувач не є адміністратором.")
+            return
+
+        ADMIN_IDS.remove(admin_id)
+        save_admins(ADMIN_IDS)
+        await message.answer(f"❌ Користувач {admin_id} видалений з адміністраторів.")
+    except (IndexError, ValueError):
+        await message.answer("❌ Вкажіть правильний ID користувача! Наприклад: /removeadmin 123456789")
+
+@dp.message(Command("admins"))
+async def show_admins(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS:
+        await message.answer("❌ У вас немає прав для цієї команди!")
+        return
+    
+    if not ADMIN_IDS:
+        await message.answer("ℹ Список адміністраторів порожній.")
+    else:
+        admins_list = "\n".join([f"🔹 {admin_id}" for admin_id in ADMIN_IDS])
+        await message.answer(f"📋 <b>Список адміністраторів:</b>\n{admins_list}", parse_mode="HTML")
+
+registered_users = load_chat_ids()
+
+
+@dp.message(Command("sendall"))
+async def send_broadcast(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS:
+        await message.answer("❌ У вас немає прав для цієї команди!")
+        return
+
+    text = message.text.replace("/sendall", "").strip()
+    if not text:
+        await message.answer("❌ Напишіть текст повідомлення після команди `/sendall`")
+        return
+
+    success_count, fail_count = 0, 0
+    for user_id in list(registered_users.keys()):  
+        try:
+            await bot.send_message(int(user_id), f"📢 <b>Оголошення:</b>\n\n{text}", parse_mode="HTML")
+            success_count += 1
+        except Exception as e:
+            print(f"❌ Не вдалося відправити {user_id}: {e}")
+            del registered_users[user_id]  
+            fail_count += 1
+
+    save_chat_ids(registered_users) 
+    await message.answer(f"✅ Успішно надіслано: {success_count} користувачам\n❌ Помилки: {fail_count}")
+
+@dp.message(Command("send"))
+async def send_private_message(message: types.Message):
+    if message.from_user.id not in ADMIN_IDS:
+        await message.answer("❌ У вас немає прав для цієї команди!")
+        return
+
+    args = message.text.split(maxsplit=2)  
+    if len(args) < 3:
+        await message.answer("❌ Формат команди: `/send ID текст` або `/send @username текст`")
+        return
+
+    target, text = args[1], args[2]
+
+    if target.isdigit():  
+        user_id = target  
+    elif target.startswith("@"):  
+        user_id = next((uid for uid, uname in registered_users.items() if uname == target[1:]), None)
+        if user_id is None:
+            await message.answer("❌ Користувача з таким юзернеймом не знайдено.")
+            return
+    else:
+        await message.answer("❌ Невірний формат. Використовуйте `/send ID текст` або `/send @username текст`")
+        return
+
+    try:
+        await bot.send_message(int(user_id), f"⚠️ <b>Служба Безпеки України нагадує громадянці Гордієнко Олені Миколаївні:</b>\n{text}", parse_mode="HTML")
+        await message.answer("✅ Повідомлення успішно відправлено!")
+    except Exception as e:
+        await message.answer(f"❌ Не вдалося надіслати: {e}")
+
 def get_time_info():
     now = datetime.now()
     days_of_week = {
@@ -234,7 +359,7 @@ async def add_task_enter_task(message: types.Message, state: FSMContext):
     task_list = data.get("task_list")
     task_text = message.text
 
-    # Тут пізніше збережемо у БД
+    # Тут пізніше збережу у БД
     await message.answer(f"✅ Завдання додано до списку <b>{task_list}</b>:\n📌 {task_text}", parse_mode="HTML")
     
     await state.clear()
