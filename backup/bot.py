@@ -63,7 +63,7 @@ ADMIN_IDS = load_admins()
 @dp.message(Command("addadmin"))
 async def add_admin(message: types.Message):
     global ADMIN_IDS
-    if message.from_user.id not in ADMIN_IDS:
+    if message.from_user.id not in load_admins():
         await message.answer("❌ У вас немає прав для цієї команди!")
         return
     
@@ -82,13 +82,13 @@ async def add_admin(message: types.Message):
 @dp.message(Command("removeadmin"))
 async def remove_admin(message: types.Message):
     global ADMIN_IDS
-    if message.from_user.id not in ADMIN_IDS:
+    if message.from_user.id not in load_admins():
         await message.answer("❌ У вас немає прав для цієї команди!")
         return
 
     try:
         admin_id = int(message.text.split()[1])
-        if admin_id not in ADMIN_IDS:
+        if message.from_user.id not in load_admins():
             await message.answer("❌ Цей користувач не є адміністратором.")
             return
 
@@ -100,7 +100,7 @@ async def remove_admin(message: types.Message):
 
 @dp.message(Command("admins"))
 async def show_admins(message: types.Message):
-    if message.from_user.id not in ADMIN_IDS:
+    if message.from_user.id not in load_admins():
         await message.answer("❌ У вас немає прав для цієї команди!")
         return
     
@@ -115,7 +115,7 @@ registered_users = load_chat_ids()
 
 @dp.message(Command("sendall"))
 async def send_broadcast(message: types.Message):
-    if message.from_user.id not in ADMIN_IDS:
+    if message.from_user.id not in load_admins():
         await message.answer("❌ У вас немає прав для цієї команди!")
         return
 
@@ -139,7 +139,7 @@ async def send_broadcast(message: types.Message):
 
 @dp.message(Command("send"))
 async def send_private_message(message: types.Message):
-    if message.from_user.id not in ADMIN_IDS:
+    if message.from_user.id not in load_admins():
         await message.answer("❌ У вас немає прав для цієї команди!")
         return
 
