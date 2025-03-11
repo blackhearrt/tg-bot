@@ -57,7 +57,7 @@ async def send_private_message(message: Message, bot: Bot):
         return
 
     try:
-        await bot.send_message(int(user_id), f"⚠️ <b>Служба Безпеки України нагадує громадянці Гордієнко Олені Миколаївні:</b>\n{text}", parse_mode="HTML")
+        await bot.send_message(int(user_id), f"⚠️ <b>{text}</b>", parse_mode="HTML")
         await message.answer("✅ Повідомлення успішно відправлено!")
     except Exception as e:
         await message.answer(f"❌ Не вдалося надіслати: {e}")
